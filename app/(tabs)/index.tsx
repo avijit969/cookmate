@@ -1,9 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import React, { useEffect } from 'react';
 import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import RecipeCard from '../../components/RecipeCard';
+import { useAppTheme } from '../../constants/Colors';
 import { useAuthStore } from '../../store/authStore';
 import { useRecipeStore } from '../../store/recipeStore';
 
@@ -12,6 +14,7 @@ export default function HomeScreen() {
   const { user } = useAuthStore();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const theme = useAppTheme();
 
   useEffect(() => {
     fetchRecipes();
@@ -24,12 +27,12 @@ export default function HomeScreen() {
   const renderHeader = () => (
     <View style={styles.header}>
       <View>
-        <Text style={styles.greeting}>Hello, {user?.name?.split(' ')[0] || 'Chef'} 👋</Text>
-        <Text style={styles.subtitle}>What do you want to cook today?</Text>
+        <Text style={[styles.greeting, { color: theme.text }]}>Hello, {user?.name?.split(' ')[0] || 'Chef'} 👋</Text>
+        <Text style={[styles.subtitle, { color: theme.subtext }]}>What do you want to cook today?</Text>
       </View>
       {user?.avatar ? (
         <View style={styles.avatarPlaceholder}>
-          <Text style={styles.avatarText}>{user.name?.[0]?.toUpperCase()}</Text>
+          <Image source={{ uri: user.avatar }} style={styles.avatar} />
         </View>
       ) : null}
     </View>
@@ -37,14 +40,14 @@ export default function HomeScreen() {
 
   if (isLoading && recipes.length === 0) {
     return (
-      <View style={[styles.container, styles.center]}>
-        <ActivityIndicator size="large" color="#F59E0B" />
+      <View style={[styles.container, styles.center, { backgroundColor: theme.background }]}>
+        <ActivityIndicator size="large" color={theme.tint} />
       </View>
     );
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
       <FlatList
         data={recipes}
         keyExtractor={(item) => item.id}
@@ -52,14 +55,14 @@ export default function HomeScreen() {
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={renderHeader}
         refreshControl={
-          <RefreshControl refreshing={isLoading} onRefresh={onRefresh} tintColor="#F59E0B" />
+          <RefreshControl refreshing={isLoading} onRefresh={onRefresh} tintColor={theme.tint} />
         }
         ListEmptyComponent={
           !isLoading ? (
             <View style={styles.emptyContainer}>
-              <Ionicons name="restaurant-outline" size={64} color="#ccc" />
-              <Text style={styles.emptyText}>No recipes found.</Text>
-              <Text style={styles.emptySubtext}>Be the first to share your culinary masterpiece!</Text>
+              <Ionicons name="restaurant-outline" size={64} color={theme.icon} />
+              <Text style={[styles.emptyText, { color: theme.text }]}>No recipes found.</Text>
+              <Text style={[styles.emptySubtext, { color: theme.subtext }]}>Be the first to share your culinary masterpiece!</Text>
             </View>
           ) : null
         }
@@ -71,7 +74,6 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAFAFA',
   },
   center: {
     justifyContent: 'center',
@@ -79,7 +81,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: 16,
-    paddingBottom: 100, // Space for tab bar
+    paddingBottom: 100,
   },
   header: {
     marginBottom: 24,
@@ -90,12 +92,15 @@ const styles = StyleSheet.create({
   greeting: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#1a1a1a',
   },
   subtitle: {
     fontSize: 16,
-    color: '#666',
     marginTop: 4,
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
   },
   avatarPlaceholder: {
     width: 40,
@@ -117,12 +122,10 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
     marginTop: 16,
   },
   emptySubtext: {
     fontSize: 14,
-    color: '#666',
     marginTop: 8,
     textAlign: 'center',
   }

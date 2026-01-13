@@ -2,17 +2,17 @@ import { Tabs } from 'expo-router';
 import React from 'react';
 
 import { HapticTab } from '@/components/haptic-tab';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Colors } from '@/constants/Colors';
+import { useThemeStore } from '@/store/themeStore';
 import { Feather } from '@expo/vector-icons';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
+  const { mode } = useThemeStore();
 
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        tabBarActiveTintColor: mode === 'dark' ? Colors.dark.tint : Colors.light.tint,
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarStyle: {
@@ -37,6 +37,13 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <Feather name="plus" size={28} color={color} />
           ),
+        }}
+      />
+      <Tabs.Screen
+        name="explore"
+        options={{
+          title: 'Explore',
+          tabBarIcon: ({ color }) => <Feather name="compass" size={28} color={color} />,
         }}
       />
       <Tabs.Screen

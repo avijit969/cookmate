@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
     ActivityIndicator,
-    Alert,
+    Image,
     KeyboardAvoidingView,
     Platform,
     ScrollView,
@@ -14,20 +15,56 @@ import {
     View
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAppTheme } from '../../constants/Colors';
 import { useRecipeStore } from '../../store/recipeStore';
+import { uploadImage } from '../../utils/imageUploader';
+
+import { useAlertStore } from '../../store/alertStore';
 
 export default function CreateRecipeScreen() {
     const router = useRouter();
     const insets = useSafeAreaInsets();
     const { createRecipe, isLoading } = useRecipeStore();
+    const theme = useAppTheme();
+    const alert = useAlertStore();
 
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [instructions, setInstructions] = useState('');
-    const [image, setImage] = useState(''); // Text input for URL
+    const [image, setImage] = useState('');
+    const [isUploading, setIsUploading] = useState(false);
     const [ingredients, setIngredients] = useState([
         { name: '', quantity: '', unit: '', type: 'Other' }
     ]);
+
+    const pickImage = async () => {
+        try {
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ["images"],
+                allowsEditing: true,
+                aspect: [4, 3],
+                quality: 0.8,
+            });
+
+            if (!result.canceled && result.assets[0].uri) {
+                setIsUploading(true);
+                try {
+                    const url = await uploadImage(result.assets[0].uri);
+                    setImage(url);
+                } catch (error: any) {
+                    alert.show({
+                        type: 'error',
+                        title: 'Upload Error',
+                        message: error.message
+                    });
+                } finally {
+                    setIsUploading(false);
+                }
+            }
+        } catch (error) {
+            alert.show({ type: 'error', title: 'Error', message: 'Failed to pick image' });
+        }
+    };
 
     const addIngredient = () => {
         setIngredients([...ingredients, { name: '', quantity: '', unit: '', type: 'Other' }]);
@@ -47,15 +84,16 @@ export default function CreateRecipeScreen() {
     };
 
     const handleCreate = async () => {
+        console.log('handleCreate');
         if (!title || !description || !instructions || !image) {
-            Alert.alert('Error', 'Please fill in all required fields');
+            alert.show({ type: 'error', title: 'Error', message: 'Please fill in all required fields' });
             return;
         }
 
         // Validate ingredients
         const validIngredients = ingredients.filter(i => i.name && i.quantity);
         if (validIngredients.length === 0) {
-            Alert.alert('Error', 'Please add at least one ingredient');
+            alert.show({ type: 'error', title: 'Error', message: 'Please add at least one ingredient' });
             return;
         }
 
@@ -63,26 +101,34 @@ export default function CreateRecipeScreen() {
             await createRecipe({
                 title,
                 description,
-                instructions,
+                instructions: instructions.split('\n'),
                 image,
                 ingredients: validIngredients
             });
-            Alert.alert('Success', 'Recipe created successfully!');
-            router.push('/(tabs)');
-            setTitle('');
-            setDescription('');
-            setInstructions('');
-            setImage('');
-            setIngredients([{ name: '', quantity: '', unit: '', type: 'Other' }]);
+            alert.show({
+                type: 'success',
+                title: 'Success',
+                message: 'Recipe created successfully!',
+                onConfirm: () => {
+                    router.push('/(tabs)');
+                    setTitle('');
+                    setDescription('');
+                    setInstructions('');
+                    setImage('');
+                    setIngredients([{ name: '', quantity: '', unit: '', type: 'Other' }]);
+                }
+            });
         } catch (error: any) {
-            Alert.alert('Error', error.message || 'Failed to create recipe');
+            alert.show({ type: 'error', title: 'Error', message: error.message || 'Failed to create recipe' });
         }
     };
 
+    const inputStyle = [styles.input, { backgroundColor: theme.inputBg, borderColor: theme.border, color: theme.text }];
+
     return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
-            <View style={styles.header}>
-                <Text style={styles.headerTitle}>Create New Recipe</Text>
+        <View style={[styles.container, { paddingTop: insets.top, backgroundColor: theme.background }]}>
+            <View style={[styles.header, { backgroundColor: theme.background, borderBottomColor: theme.border }]}>
+                <Text style={[styles.headerTitle, { color: theme.text }]}>Create New Recipe</Text>
             </View>
 
             <KeyboardAvoidingView
@@ -93,31 +139,50 @@ export default function CreateRecipeScreen() {
                 <ScrollView style={styles.content} contentContainerStyle={styles.scrollContent}>
 
                     <View style={styles.formSection}>
-                        <Text style={styles.label}>Recipe Title</Text>
+                        <Text style={[styles.label, { color: theme.text }]}>Recipe Title</Text>
                         <TextInput
-                            style={styles.input}
+                            style={inputStyle}
                             placeholder="e.g. Grandma's Apple Pie"
+                            placeholderTextColor={theme.subtext}
                             value={title}
                             onChangeText={setTitle}
                         />
                     </View>
 
                     <View style={styles.formSection}>
-                        <Text style={styles.label}>Image URL</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="https://example.com/image.jpg"
-                            value={image}
-                            onChangeText={setImage}
-                            autoCapitalize="none"
-                        />
+                        <Text style={[styles.label, { color: theme.text }]}>Recipe Image</Text>
+                        <TouchableOpacity
+                            style={[
+                                styles.imagePicker,
+                                { borderColor: theme.border, backgroundColor: theme.inputBg }
+                            ]}
+                            onPress={pickImage}
+                            disabled={isUploading}
+                        >
+                            {isUploading ? (
+                                <ActivityIndicator color={theme.tint} />
+                            ) : image ? (
+                                <View style={styles.imagePreviewContainer}>
+                                    <Image source={{ uri: image }} style={styles.imagePreview} />
+                                    <View style={styles.editIconOverlay}>
+                                        <Ionicons name="pencil" size={16} color="#fff" />
+                                    </View>
+                                </View>
+                            ) : (
+                                <View style={styles.placeholderContainer}>
+                                    <Ionicons name="image-outline" size={40} color={theme.subtext} />
+                                    <Text style={[styles.placeholderText, { color: theme.subtext }]}>Tap to upload cover image</Text>
+                                </View>
+                            )}
+                        </TouchableOpacity>
                     </View>
 
                     <View style={styles.formSection}>
-                        <Text style={styles.label}>Description</Text>
+                        <Text style={[styles.label, { color: theme.text }]}>Description</Text>
                         <TextInput
-                            style={[styles.input, styles.textArea]}
+                            style={[inputStyle, styles.textArea]}
                             placeholder="Tell us about this dish..."
+                            placeholderTextColor={theme.subtext}
                             value={description}
                             onChangeText={setDescription}
                             multiline
@@ -127,8 +192,8 @@ export default function CreateRecipeScreen() {
 
                     <View style={styles.formSection}>
                         <View style={styles.sectionHeader}>
-                            <Text style={styles.label}>Ingredients</Text>
-                            <TouchableOpacity onPress={addIngredient} style={styles.addButtonSmall}>
+                            <Text style={[styles.label, { color: theme.text }]}>Ingredients</Text>
+                            <TouchableOpacity onPress={addIngredient} style={[styles.addButtonSmall, { backgroundColor: theme.tint }]}>
                                 <Ionicons name="add" size={18} color="#fff" />
                                 <Text style={styles.addButtonSmallText}>Add</Text>
                             </TouchableOpacity>
@@ -137,27 +202,30 @@ export default function CreateRecipeScreen() {
                         {ingredients.map((ing, index) => (
                             <View key={index} style={styles.ingredientRow}>
                                 <TextInput
-                                    style={[styles.input, styles.ingInputMain]}
+                                    style={[inputStyle, styles.ingInputMain]}
                                     placeholder="Ingredient"
+                                    placeholderTextColor={theme.subtext}
                                     value={ing.name}
                                     onChangeText={(t) => updateIngredient(index, 'name', t)}
                                 />
                                 <TextInput
-                                    style={[styles.input, styles.ingInputQty]}
+                                    style={[inputStyle, styles.ingInputQty]}
                                     placeholder="Qty"
+                                    placeholderTextColor={theme.subtext}
                                     value={ing.quantity}
                                     onChangeText={(t) => updateIngredient(index, 'quantity', t)}
                                     keyboardType="numeric"
                                 />
                                 <TextInput
-                                    style={[styles.input, styles.ingInputUnit]}
+                                    style={[inputStyle, styles.ingInputUnit]}
                                     placeholder="Unit"
+                                    placeholderTextColor={theme.subtext}
                                     value={ing.unit}
                                     onChangeText={(t) => updateIngredient(index, 'unit', t)}
                                 />
                                 {ingredients.length > 1 && (
                                     <TouchableOpacity onPress={() => removeIngredient(index)} style={styles.removeBtn}>
-                                        <Ionicons name="trash-outline" size={20} color="#FF5252" />
+                                        <Ionicons name="trash-outline" size={20} color={theme.danger} />
                                     </TouchableOpacity>
                                 )}
                             </View>
@@ -165,10 +233,11 @@ export default function CreateRecipeScreen() {
                     </View>
 
                     <View style={styles.formSection}>
-                        <Text style={styles.label}>Instructions</Text>
+                        <Text style={[styles.label, { color: theme.text }]}>Instructions</Text>
                         <TextInput
-                            style={[styles.input, styles.textAreaLarge]}
+                            style={[inputStyle, styles.textAreaLarge]}
                             placeholder="Step by step instructions..."
+                            placeholderTextColor={theme.subtext}
                             value={instructions}
                             onChangeText={setInstructions}
                             multiline
@@ -176,7 +245,7 @@ export default function CreateRecipeScreen() {
                     </View>
 
                     <TouchableOpacity
-                        style={styles.submitButton}
+                        style={[styles.submitButton, { backgroundColor: theme.tint }]} // Use tint color for CTA
                         onPress={handleCreate}
                         disabled={isLoading}
                     >
@@ -196,19 +265,15 @@ export default function CreateRecipeScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fff',
     },
     header: {
         paddingHorizontal: 20,
         paddingBottom: 16,
         borderBottomWidth: 1,
-        borderBottomColor: '#f0f0f0',
-        backgroundColor: '#fff',
     },
     headerTitle: {
         fontSize: 24,
         fontWeight: 'bold',
-        color: '#1a1a1a',
     },
     content: {
         flex: 1,
@@ -223,17 +288,13 @@ const styles = StyleSheet.create({
     label: {
         fontSize: 16,
         fontWeight: '600',
-        color: '#333',
         marginBottom: 8,
     },
     input: {
-        backgroundColor: '#f9f9f9',
         borderWidth: 1,
-        borderColor: '#eee',
         borderRadius: 12,
         padding: 12,
         fontSize: 16,
-        color: '#333',
     },
     textArea: {
         height: 80,
@@ -252,7 +313,6 @@ const styles = StyleSheet.create({
     addButtonSmall: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#F59E0B',
         paddingHorizontal: 12,
         paddingVertical: 6,
         borderRadius: 20,
@@ -283,7 +343,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 4,
     },
     submitButton: {
-        backgroundColor: '#1a1a1a',
         paddingVertical: 16,
         borderRadius: 16,
         alignItems: 'center',
@@ -298,5 +357,38 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontSize: 18,
         fontWeight: 'bold',
+    },
+    imagePicker: {
+        height: 200,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderStyle: 'dashed',
+        justifyContent: 'center',
+        alignItems: 'center',
+        overflow: 'hidden',
+    },
+    placeholderContainer: {
+        alignItems: 'center',
+    },
+    placeholderText: {
+        marginTop: 8,
+        fontSize: 14,
+    },
+    imagePreviewContainer: {
+        width: '100%',
+        height: '100%',
+    },
+    imagePreview: {
+        width: '100%',
+        height: '100%',
+        resizeMode: 'cover',
+    },
+    editIconOverlay: {
+        position: 'absolute',
+        bottom: 8,
+        right: 8,
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        padding: 8,
+        borderRadius: 20,
     },
 });

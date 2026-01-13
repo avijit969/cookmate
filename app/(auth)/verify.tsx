@@ -3,70 +3,80 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
     ActivityIndicator,
-    Alert,
     KeyboardAvoidingView,
     Platform,
     StyleSheet,
     Text,
     TextInput,
     TouchableOpacity,
-    View,
+    View
 } from 'react-native';
+import { useAppTheme } from '../../constants/Colors';
 import { useAuthStore } from '../../store/authStore';
+
+import { useAlertStore } from '../../store/alertStore';
 
 export default function VerifyScreen() {
     const router = useRouter();
     const params = useLocalSearchParams();
     const { verify, isLoading } = useAuthStore();
+    const theme = useAppTheme();
+    const alert = useAlertStore();
 
     const [token, setToken] = useState('');
 
     const handleVerify = async () => {
         if (!token) {
-            Alert.alert('Error', 'Please enter the verification code');
+            alert.show({ type: 'error', title: 'Error', message: 'Please enter the verification code' });
             return;
         }
 
         try {
             await verify(token);
-            Alert.alert('Success', 'Account verified!', [
-                { text: 'OK', onPress: () => router.replace('/(auth)/login') }
-            ]);
+            alert.show({
+                type: 'success',
+                title: 'Success',
+                message: 'Account verified!',
+                onConfirm: () => router.replace('/(auth)/login')
+            });
         } catch (error: any) {
-            Alert.alert('Verification Failed', error.message || 'Invalid code');
+            alert.show({ type: 'error', title: 'Verification Failed', message: error.message || 'Invalid code' });
         }
     };
+
+    const inputStyle = [styles.input, { color: theme.text }];
+    const inputContainerStyle = [styles.inputContainer, { backgroundColor: theme.inputBg, borderColor: theme.border }];
 
     return (
         <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={styles.container}
+            style={[styles.container, { backgroundColor: theme.background }]}
         >
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-                    <Ionicons name="arrow-back" size={24} color="#333" />
+                <TouchableOpacity onPress={() => router.back()} style={[styles.backButton, { backgroundColor: theme.inputBg }]}>
+                    <Ionicons name="arrow-back" size={24} color={theme.text} />
                 </TouchableOpacity>
             </View>
 
             <View style={styles.content}>
-                <View style={styles.iconContainer}>
-                    <Ionicons name="shield-checkmark-outline" size={80} color="#F59E0B" />
+                <View style={[styles.iconContainer, { backgroundColor: theme.inputBg }]}>
+                    <Ionicons name="shield-checkmark-outline" size={80} color={theme.tint} />
                 </View>
 
                 <View style={styles.titleContainer}>
-                    <Text style={styles.title}>Verification</Text>
-                    <Text style={styles.subtitle}>
+                    <Text style={[styles.title, { color: theme.text }]}>Verification</Text>
+                    <Text style={[styles.subtitle, { color: theme.subtext }]}>
                         Enter the 6-digit code sent to {params.email || 'your email'}
                     </Text>
                 </View>
 
                 <View style={styles.form}>
-                    <View style={styles.inputContainer}>
-                        <Ionicons name="keypad-outline" size={20} color="#666" style={styles.inputIcon} />
+                    <View style={inputContainerStyle}>
+                        <Ionicons name="keypad-outline" size={20} color={theme.icon} style={styles.inputIcon} />
                         <TextInput
-                            style={styles.input}
+                            style={inputStyle}
                             placeholder="123456"
-                            placeholderTextColor="#999"
+                            placeholderTextColor={theme.subtext}
                             value={token}
                             onChangeText={setToken}
                             keyboardType="number-pad"
@@ -75,7 +85,7 @@ export default function VerifyScreen() {
                     </View>
 
                     <TouchableOpacity
-                        style={styles.button}
+                        style={[styles.button, { backgroundColor: theme.tint, shadowColor: theme.tint }]}
                         onPress={handleVerify}
                         disabled={isLoading}
                     >
@@ -94,7 +104,6 @@ export default function VerifyScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fff',
     },
     header: {
         paddingTop: 60,
@@ -106,7 +115,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         borderRadius: 20,
-        backgroundColor: '#f5f5f5',
     },
     content: {
         flex: 1,
@@ -119,7 +127,6 @@ const styles = StyleSheet.create({
         width: 120,
         height: 120,
         borderRadius: 60,
-        backgroundColor: '#FFF8E1',
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -130,12 +137,10 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 28,
         fontWeight: 'bold',
-        color: '#333',
         marginBottom: 8,
     },
     subtitle: {
         fontSize: 16,
-        color: '#666',
         textAlign: 'center',
     },
     form: {
@@ -144,13 +149,11 @@ const styles = StyleSheet.create({
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#f5f5f5',
         borderRadius: 12,
         paddingHorizontal: 16,
         marginBottom: 24,
         height: 56,
         borderWidth: 1,
-        borderColor: '#eee',
     },
     inputIcon: {
         marginRight: 12,
@@ -158,16 +161,13 @@ const styles = StyleSheet.create({
     input: {
         flex: 1,
         fontSize: 20, // Larger font for code
-        color: '#333',
         letterSpacing: 4, // Spacing for code
     },
     button: {
-        backgroundColor: '#F59E0B',
         height: 56,
         borderRadius: 12,
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: '#F59E0B',
         shadowOffset: {
             width: 0,
             height: 4,

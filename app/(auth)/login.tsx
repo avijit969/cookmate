@@ -3,7 +3,6 @@ import { Link, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
     ActivityIndicator,
-    Alert,
     KeyboardAvoidingView,
     Platform,
     StyleSheet,
@@ -12,18 +11,23 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useAppTheme } from '../../constants/Colors';
 import { useAuthStore } from '../../store/authStore';
+
+import { useAlertStore } from '../../store/alertStore';
 
 export default function LoginScreen() {
     const router = useRouter();
     const { login, isLoading } = useAuthStore();
+    const theme = useAppTheme();
+    const alert = useAlertStore();
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
     const handleLogin = async () => {
         if (!email || !password) {
-            Alert.alert('Error', 'Please fill in all fields');
+            alert.show({ type: 'error', title: 'Error', message: 'Please fill in all fields' });
             return;
         }
 
@@ -31,29 +35,32 @@ export default function LoginScreen() {
             await login({ email, password });
             router.replace('/(tabs)');
         } catch (error: any) {
-            Alert.alert('Login Failed', error.message || 'Something went wrong');
+            alert.show({ type: 'error', title: 'Login Failed', message: error.message || 'Something went wrong' });
         }
     };
+
+    const inputStyle = [styles.input, { color: theme.text }];
+    const inputContainerStyle = [styles.inputContainer, { backgroundColor: theme.inputBg, borderColor: theme.border }];
 
     return (
         <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={styles.container}
+            style={[styles.container, { backgroundColor: theme.background }]}
         >
             <View style={styles.content}>
                 <View style={styles.header}>
-                    <Ionicons name="restaurant" size={64} color="#F59E0B" />
-                    <Text style={styles.title}>CookMate</Text>
-                    <Text style={styles.subtitle}>Welcome back, Chef!</Text>
+                    <Ionicons name="restaurant" size={64} color={theme.tint} />
+                    <Text style={[styles.title, { color: theme.text }]}>CookMate</Text>
+                    <Text style={[styles.subtitle, { color: theme.subtext }]}>Welcome back, Chef!</Text>
                 </View>
 
                 <View style={styles.form}>
-                    <View style={styles.inputContainer}>
-                        <Ionicons name="mail-outline" size={20} color="#666" style={styles.inputIcon} />
+                    <View style={inputContainerStyle}>
+                        <Ionicons name="mail-outline" size={20} color={theme.icon} style={styles.inputIcon} />
                         <TextInput
-                            style={styles.input}
+                            style={inputStyle}
                             placeholder="Email Address"
-                            placeholderTextColor="#999"
+                            placeholderTextColor={theme.subtext}
                             value={email}
                             onChangeText={setEmail}
                             autoCapitalize="none"
@@ -61,12 +68,12 @@ export default function LoginScreen() {
                         />
                     </View>
 
-                    <View style={styles.inputContainer}>
-                        <Ionicons name="lock-closed-outline" size={20} color="#666" style={styles.inputIcon} />
+                    <View style={inputContainerStyle}>
+                        <Ionicons name="lock-closed-outline" size={20} color={theme.icon} style={styles.inputIcon} />
                         <TextInput
-                            style={styles.input}
+                            style={inputStyle}
                             placeholder="Password"
-                            placeholderTextColor="#999"
+                            placeholderTextColor={theme.subtext}
                             value={password}
                             onChangeText={setPassword}
                             secureTextEntry
@@ -74,7 +81,7 @@ export default function LoginScreen() {
                     </View>
 
                     <TouchableOpacity
-                        style={styles.loginButton}
+                        style={[styles.loginButton, { backgroundColor: theme.tint, shadowColor: theme.tint }]}
                         onPress={handleLogin}
                         disabled={isLoading}
                     >
@@ -86,10 +93,10 @@ export default function LoginScreen() {
                     </TouchableOpacity>
 
                     <View style={styles.footer}>
-                        <Text style={styles.footerText}>Don't have an account? </Text>
+                        <Text style={[styles.footerText, { color: theme.subtext }]}>Don't have an account? </Text>
                         <Link href="/(auth)/register" asChild>
                             <TouchableOpacity>
-                                <Text style={styles.linkText}>Sign Up</Text>
+                                <Text style={[styles.linkText, { color: theme.tint }]}>Sign Up</Text>
                             </TouchableOpacity>
                         </Link>
                     </View>
@@ -102,7 +109,6 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fff',
     },
     content: {
         flex: 1,
@@ -116,12 +122,10 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 32,
         fontWeight: 'bold',
-        color: '#333',
         marginTop: 16,
     },
     subtitle: {
         fontSize: 16,
-        color: '#666',
         marginTop: 8,
     },
     form: {
@@ -130,13 +134,11 @@ const styles = StyleSheet.create({
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#f5f5f5',
         borderRadius: 12,
         paddingHorizontal: 16,
         marginBottom: 16,
         height: 56,
         borderWidth: 1,
-        borderColor: '#eee',
     },
     inputIcon: {
         marginRight: 12,
@@ -144,16 +146,13 @@ const styles = StyleSheet.create({
     input: {
         flex: 1,
         fontSize: 16,
-        color: '#333',
     },
     loginButton: {
-        backgroundColor: '#F59E0B',
         height: 56,
         borderRadius: 12,
         justifyContent: 'center',
         alignItems: 'center',
         marginTop: 16,
-        shadowColor: '#F59E0B',
         shadowOffset: {
             width: 0,
             height: 4,
@@ -173,11 +172,9 @@ const styles = StyleSheet.create({
         marginTop: 24,
     },
     footerText: {
-        color: '#666',
         fontSize: 14,
     },
     linkText: {
-        color: '#F59E0B',
         fontSize: 14,
         fontWeight: '600',
     },

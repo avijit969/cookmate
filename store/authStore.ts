@@ -22,6 +22,7 @@ interface AuthState {
   logout: () => Promise<void>;
   setUser: (user: User | null) => void;
   setToken: (token: string | null) => void;
+  updateProfile: (data: { name?: string; avatar?: string }) => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -173,6 +174,40 @@ export const useAuthStore = create<AuthState>()(
         } catch (error: any) {
           set({ user: null, token: null, isLoading: false });
         }
+      },
+
+      updateProfile: async (updates) => {
+          set({ isLoading: true, error: null });
+          try {
+              const token = get().token;
+              if (!token) throw new Error('Not authenticated');
+
+              const response = await fetch(`${API_BASE_URL}/users`, {
+                  method: 'PUT',
+                  headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${token}`
+                  },
+                  body: JSON.stringify(updates)
+              });
+
+              const text = await response.text();
+              let data;
+              try {
+                  data = JSON.parse(text);
+              } catch(e) {
+                   throw new Error(`Server Error: ${text.substring(0, 50)}`);
+              }
+
+              if (!response.ok) {
+                  throw new Error(data.message || 'Update failed');
+              }
+
+              set({ user: data.user, isLoading: false });
+          } catch (error: any) {
+              set({ isLoading: false, error: error.message || 'Update failed' });
+              throw error;
+          }
       },
     }),
     {

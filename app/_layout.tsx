@@ -2,21 +2,26 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
+import { useColorScheme as useNativeColorScheme } from 'react-native';
 import 'react-native-reanimated';
 
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import CustomAlert from '@/components/CustomAlert';
 import { useAuthStore } from '../store/authStore';
+import { useThemeStore } from '../store/themeStore';
 
 export const unstable_settings = {
   initialRouteName: '(auth)',
 };
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
+  const { mode } = useThemeStore();
+  const systemColorScheme = useNativeColorScheme();
   const { token } = useAuthStore();
   const segments = useSegments();
   const router = useRouter();
   const [isNavigationReady, setIsNavigationReady] = useState(false);
+
+  const isDark = mode === 'system' ? systemColorScheme === 'dark' : mode === 'dark';
 
   useEffect(() => {
     setIsNavigationReady(true);
@@ -38,14 +43,15 @@ export default function RootLayout() {
     return null;
   }
 
+
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <ThemeProvider value={isDark ? DarkTheme : DefaultTheme}>
       <Stack>
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
       </Stack>
-      <StatusBar style="auto" />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
+      <CustomAlert />
     </ThemeProvider>
   );
 }

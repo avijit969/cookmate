@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect } from 'react';
 import { ActivityIndicator, Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useAppTheme } from '../../constants/Colors';
 import { useRecipeStore } from '../../store/recipeStore';
 
 const { width } = Dimensions.get('window');
@@ -12,6 +13,7 @@ export default function RecipeDetailsScreen() {
     const { id } = useLocalSearchParams();
     const router = useRouter();
     const { currentRecipe, isLoading, fetchRecipeById } = useRecipeStore();
+    const theme = useAppTheme();
 
     useEffect(() => {
         if (id && typeof id === 'string') {
@@ -21,15 +23,15 @@ export default function RecipeDetailsScreen() {
 
     if (isLoading || !currentRecipe) {
         return (
-            <View style={styles.loadingContainer}>
+            <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
                 <Stack.Screen options={{ headerShown: false }} />
-                <ActivityIndicator size="large" color="#F59E0B" />
+                <ActivityIndicator size="large" color={theme.tint} />
             </View>
         );
     }
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: theme.background }]}>
             <Stack.Screen options={{
                 headerTransparent: true,
                 headerTitle: '',
@@ -69,16 +71,16 @@ export default function RecipeDetailsScreen() {
                     </View>
                 </View>
 
-                <View style={styles.content}>
-                    <Text style={styles.description}>{currentRecipe.description}</Text>
+                <View style={[styles.content, { backgroundColor: theme.background }]}>
+                    <Text style={[styles.description, { color: theme.subtext }]}>{currentRecipe.description}</Text>
 
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Ingredients</Text>
+                        <Text style={[styles.sectionTitle, { color: theme.text, borderLeftColor: theme.tint }]}>Ingredients</Text>
                         <View style={styles.ingredientsList}>
                             {currentRecipe.ingredients.map((ing, index) => (
                                 <View key={index} style={styles.ingredientItem}>
-                                    <View style={styles.bullet} />
-                                    <Text style={styles.ingredientText}>
+                                    <View style={[styles.bullet, { backgroundColor: theme.tint }]} />
+                                    <Text style={[styles.ingredientText, { color: theme.text }]}>
                                         <Text style={styles.bold}>{ing.quantity} {ing.unit} </Text>
                                         {ing.name}
                                     </Text>
@@ -88,8 +90,8 @@ export default function RecipeDetailsScreen() {
                     </View>
 
                     <View style={styles.section}>
-                        <Text style={styles.sectionTitle}>Instructions</Text>
-                        <Text style={styles.instructionsText}>{currentRecipe.instructions}</Text>
+                        <Text style={[styles.sectionTitle, { color: theme.text, borderLeftColor: theme.tint }]}>Instructions</Text>
+                        <Text style={[styles.instructionsText, { color: theme.text }]}>{currentRecipe.instructions}</Text>
                     </View>
                 </View>
             </ScrollView>
@@ -100,13 +102,11 @@ export default function RecipeDetailsScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#fff',
     },
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#fff',
     },
     scrollView: {
         flex: 1,
@@ -119,7 +119,6 @@ const styles = StyleSheet.create({
     image: {
         width: '100%',
         height: '100%',
-        resizeMode: 'cover',
     },
     gradient: {
         position: 'absolute',
@@ -169,14 +168,12 @@ const styles = StyleSheet.create({
     },
     content: {
         padding: 24,
-        backgroundColor: '#fff',
         borderTopLeftRadius: 32,
         borderTopRightRadius: 32,
         marginTop: -32, // Overlap the image slightly
     },
     description: {
         fontSize: 16,
-        color: '#666',
         lineHeight: 24,
         marginBottom: 32,
     },
@@ -186,10 +183,8 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: 20,
         fontWeight: 'bold',
-        color: '#1a1a1a',
         marginBottom: 16,
         borderLeftWidth: 4,
-        borderLeftColor: '#F59E0B',
         paddingLeft: 12,
     },
     ingredientsList: {
@@ -203,19 +198,16 @@ const styles = StyleSheet.create({
         width: 6,
         height: 6,
         borderRadius: 3,
-        backgroundColor: '#F59E0B',
         marginRight: 12,
     },
     ingredientText: {
         fontSize: 16,
-        color: '#444',
     },
     bold: {
         fontWeight: 'bold',
     },
     instructionsText: {
         fontSize: 16,
-        color: '#444',
         lineHeight: 28,
     },
 });

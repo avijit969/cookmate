@@ -19,7 +19,7 @@ export interface Recipe {
   id: string;
   title: string;
   description: string;
-  instructions: string;
+  instructions: string[];
   image: string;
   ingredients: Ingredient[];
   createdBy?: User;
@@ -85,6 +85,7 @@ export const useRecipeStore = create<RecipeState>((set) => ({
   },
 
   createRecipe: async (recipeData) => {
+    console.log(recipeData);
     set({ isLoading: true, error: null });
     try {
       const token = useAuthStore.getState().token;
@@ -99,7 +100,10 @@ export const useRecipeStore = create<RecipeState>((set) => ({
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify(recipeData),
+        body: JSON.stringify({
+            ...recipeData,
+            instructions: [recipeData.instructions]
+        }),
       });
 
       const data = await response.json();
