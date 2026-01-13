@@ -2,9 +2,11 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect } from 'react';
-import { ActivityIndicator, Dimensions, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Dimensions, ScrollView, Share, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useAppTheme } from '../../constants/Colors';
+import { useAuthStore } from '../../store/authStore';
+import { useInteractionStore } from '../../store/interactionStore';
 import { useRecipeStore } from '../../store/recipeStore';
 
 const { width } = Dimensions.get('window');
@@ -12,20 +14,61 @@ const { width } = Dimensions.get('window');
 export default function RecipeDetailsScreen() {
     const { id } = useLocalSearchParams();
     const router = useRouter();
-    const { currentRecipe, isLoading, fetchRecipeById } = useRecipeStore();
+    const { currentRecipe, isLoading, fetchRecipeById, error } = useRecipeStore();
+    const {
+        comments,
+        addComment,
+        fetchRecipeComments,
+        toggleLike,
+        toggleSave,
+        savedRecipes
+    } = useInteractionStore();
+    const { user } = useAuthStore();
+
     const theme = useAppTheme();
+    const [commentText, setCommentText] = useState('');
+    const [isLiked, setIsLiked] = useState(false);
+
+    const isSaved = savedRecipes.some(r => r.id === (typeof id === 'string' ? id : ''));
+    const currentComments = id && typeof id === 'string' ? (comments[id] || []) : [];
 
     useEffect(() => {
         if (id && typeof id === 'string') {
             fetchRecipeById(id);
+            fetchRecipeComments(id);
         }
     }, [id]);
 
-    if (isLoading || !currentRecipe) {
+    const handleSubmitComment = async () => {
+        if (!commentText.trim() || typeof id !== 'string') return;
+        try {
+            await addComment(id, commentText);
+            setCommentText('');
+        } catch (e) {
+            // Error handled in store
+        }
+    };
+
+    if (isLoading) {
         return (
             <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
                 <Stack.Screen options={{ headerShown: false }} />
                 <ActivityIndicator size="large" color={theme.tint} />
+            </View>
+        );
+    }
+
+    if (error || !currentRecipe) {
+        return (
+            <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
+                <Stack.Screen options={{ headerShown: true, headerTitle: '', headerTransparent: true, headerTintColor: theme.text }} />
+                <Ionicons name="alert-circle-outline" size={64} color={theme.subtext} />
+                <Text style={{ color: theme.text, fontSize: 18, marginTop: 16 }}>
+                    {error || "Recipe not found"}
+                </Text>
+                <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 20, padding: 10 }}>
+                    <Text style={{ color: theme.tint, fontSize: 16 }}>Go Back</Text>
+                </TouchableOpacity>
             </View>
         );
     }
@@ -68,6 +111,31 @@ export default function RecipeDetailsScreen() {
                                 </View>
                             )}
                         </View>
+
+                        <View style={styles.actionRow}>
+                            <TouchableOpacity
+                                onPress={() => { if (typeof id === 'string') { toggleLike(id); setIsLiked(!isLiked); } }}
+                                style={styles.actionBtn}
+                            >
+                                <Ionicons name={isLiked ? "heart" : "heart-outline"} size={28} color={isLiked ? theme.tint : "#fff"} />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                onPress={() => { if (typeof id === 'string') toggleSave(id); }}
+                                style={styles.actionBtn}
+                            >
+                                <Ionicons name={isSaved ? "bookmark" : "bookmark-outline"} size={28} color={isSaved ? theme.tint : "#fff"} />
+                            </TouchableOpacity>
+                            <TouchableOpacity style={styles.actionBtn} onPress={() => {
+                                if (currentRecipe) {
+                                    Share.share({
+                                        message: `Check out this recipe: ${currentRecipe.title}`,
+                                        title: currentRecipe.title
+                                    });
+                                }
+                            }}>
+                                <Ionicons name="share-social-outline" size={28} color="#fff" />
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </View>
 
@@ -92,6 +160,45 @@ export default function RecipeDetailsScreen() {
                     <View style={styles.section}>
                         <Text style={[styles.sectionTitle, { color: theme.text, borderLeftColor: theme.tint }]}>Instructions</Text>
                         <Text style={[styles.instructionsText, { color: theme.text }]}>{currentRecipe.instructions}</Text>
+                    </View>
+
+                    <View style={styles.section}>
+                        <Text style={[styles.sectionTitle, { color: theme.text, borderLeftColor: theme.tint }]}>Comments</Text>
+                        <View style={styles.commentsList}>
+                            {currentComments.map((comment) => (
+                                <View key={comment.id} style={[styles.commentItem, { backgroundColor: theme.inputBg }]}>
+                                    <View style={styles.commentHeader}>
+                                        {comment.user?.avatar ? (
+                                            <Image source={{ uri: comment.user.avatar }} style={styles.commentAvatar} />
+                                        ) : (
+                                            <View style={[styles.commentAvatar, { backgroundColor: '#ccc', justifyContent: 'center', alignItems: 'center' }]}>
+                                                <Ionicons name="person" size={12} color="#fff" />
+                                            </View>
+                                        )}
+                                        <Text style={[styles.commentUser, { color: theme.text }]}>{comment.user?.name || 'User'}</Text>
+                                        <Text style={[styles.commentDate, { color: theme.subtext }]}>{new Date(comment.createdAt).toLocaleDateString()}</Text>
+                                    </View>
+                                    <Text style={[styles.commentContent, { color: theme.text }]}>{comment.content}</Text>
+                                </View>
+                            ))}
+                            {currentComments.length === 0 && (
+                                <Text style={{ color: theme.subtext, fontStyle: 'italic' }}>No comments yet. Be the first!</Text>
+                            )}
+                        </View>
+
+                        <View style={styles.addCommentContainer}>
+                            <TextInput
+                                style={[styles.commentInput, { backgroundColor: theme.inputBg, color: theme.text }]}
+                                placeholder="Add a comment..."
+                                placeholderTextColor={theme.subtext}
+                                value={commentText}
+                                onChangeText={setCommentText}
+                                multiline
+                            />
+                            <TouchableOpacity onPress={handleSubmitComment} style={[styles.sendButton, { backgroundColor: theme.tint }]}>
+                                <Ionicons name="send" size={20} color="#fff" />
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </View>
             </ScrollView>
@@ -209,5 +316,64 @@ const styles = StyleSheet.create({
     instructionsText: {
         fontSize: 16,
         lineHeight: 28,
+    },
+    actionRow: {
+        flexDirection: 'row',
+        marginTop: 16,
+        gap: 20,
+    },
+    actionBtn: {
+        padding: 4,
+    },
+    commentsList: {
+        marginBottom: 16,
+        gap: 12,
+    },
+    commentItem: {
+        padding: 12,
+        borderRadius: 12,
+    },
+    commentHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 8,
+    },
+    commentAvatar: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        marginRight: 8,
+    },
+    commentUser: {
+        fontWeight: 'bold',
+        fontSize: 14,
+        marginRight: 8,
+    },
+    commentDate: {
+        fontSize: 12,
+        marginLeft: 'auto',
+    },
+    commentContent: {
+        fontSize: 14,
+        lineHeight: 20,
+    },
+    addCommentContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    commentInput: {
+        flex: 1,
+        padding: 12,
+        borderRadius: 24,
+        fontSize: 14,
+        minHeight: 48,
+    },
+    sendButton: {
+        width: 48,
+        height: 48,
+        borderRadius: 24,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
 });

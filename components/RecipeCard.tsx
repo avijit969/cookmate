@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useAppTheme } from '../constants/Colors';
+import { useInteractionStore } from '../store/interactionStore';
 import { Recipe } from '../store/recipeStore';
 
 interface RecipeCardProps {
@@ -13,6 +14,19 @@ interface RecipeCardProps {
 export default function RecipeCard({ recipe }: RecipeCardProps) {
     const router = useRouter();
     const theme = useAppTheme();
+    const { toggleLike, toggleSave, savedRecipes } = useInteractionStore();
+    const [isLiked, setIsLiked] = useState(false);
+
+    const isSaved = savedRecipes.some(r => r.id === recipe.id);
+
+    const handleLike = () => {
+        toggleLike(recipe.id);
+        setIsLiked(!isLiked);
+    };
+
+    const handleSave = () => {
+        toggleSave(recipe.id);
+    };
 
     return (
         <TouchableOpacity
@@ -24,7 +38,14 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
             <View style={styles.content}>
                 <View style={styles.header}>
                     <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>{recipe.title}</Text>
-                    {/* You could add a save/heart button here */}
+                    <View style={styles.actions}>
+                        <TouchableOpacity onPress={handleLike} style={styles.actionButton}>
+                            <Ionicons name={isLiked ? "heart" : "heart-outline"} size={24} color={isLiked ? theme.tint : theme.text} />
+                        </TouchableOpacity>
+                        <TouchableOpacity onPress={handleSave} style={styles.actionButton}>
+                            <Ionicons name={isSaved ? "bookmark" : "bookmark-outline"} size={24} color={isSaved ? theme.tint : theme.text} />
+                        </TouchableOpacity>
+                    </View>
                 </View>
 
                 <Text style={[styles.description, { color: theme.subtext }]} numberOfLines={2}>
@@ -62,7 +83,6 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         marginBottom: 20,
         borderWidth: 1,
-        // Elevation can be subtle or removed in dark mode preference, but keeping simple for now
     },
     image: {
         width: '100%',
@@ -124,5 +144,12 @@ const styles = StyleSheet.create({
     },
     statText: {
         fontSize: 12,
+    },
+    actions: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    actionButton: {
+        padding: 4,
     }
 });

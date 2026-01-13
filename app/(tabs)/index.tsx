@@ -7,10 +7,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import RecipeCard from '../../components/RecipeCard';
 import { useAppTheme } from '../../constants/Colors';
 import { useAuthStore } from '../../store/authStore';
+import { useInteractionStore } from '../../store/interactionStore';
 import { useRecipeStore } from '../../store/recipeStore';
 
 export default function HomeScreen() {
   const { recipes, isLoading, fetchRecipes, error } = useRecipeStore();
+  const { fetchSavedRecipes } = useInteractionStore();
   const { user } = useAuthStore();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -18,6 +20,7 @@ export default function HomeScreen() {
 
   useEffect(() => {
     fetchRecipes();
+    fetchSavedRecipes();
   }, []);
 
   const onRefresh = async () => {

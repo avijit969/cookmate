@@ -71,7 +71,7 @@ export const useRecipeStore = create<RecipeState>((set) => ({
   fetchRecipeById: async (id: string) => {
     set({ isLoading: true, error: null });
     try {
-      const response = await fetch(`${API_BASE_URL}/recipes/${id}`);
+      const response = await fetch(`${API_BASE_URL}/recipes/recipe/${id}`);
       const data = await response.json();
 
       if (!response.ok) {
@@ -112,13 +112,7 @@ export const useRecipeStore = create<RecipeState>((set) => ({
         throw new Error(data.message || 'Failed to create recipe');
       }
 
-      // Add the new recipe to the list locally (optional optimisitc update or refetch)
-      // Here we will just append it if we have the full object, otherwise maybe refetch?
-      // The API returns the created recipe but logic in store might differ. 
-      // Ideally we prepend it.
-      
-      // Since data.recipe is the new recipe
-      set((state) => ({ 
+        set((state) => ({ 
           recipes: [data.recipe, ...state.recipes],
           isLoading: false 
       }));
