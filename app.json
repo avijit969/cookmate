@@ -2,7 +2,7 @@
   "expo": {
     "name": "cookmate",
     "slug": "cookmate",
-    "version": "1.0.0",
+    "version": "1.2.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "cookmate",
@@ -13,6 +13,38 @@
       "bundleIdentifier": "com.abhijit969.cookmate"
     },
     "android": {
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "cookmate.trivyaa.in",
+              "pathPrefix": "/"
+            },
+            {
+              "scheme": "https",
+              "host": "cookmate.trivyaa.in",
+              "pathPrefix": "/recipe"
+            },
+            {
+              "scheme": "https",
+              "host": "cookmate.trivyaa.in",
+              "pathPrefix": "/profile"
+            },
+            {
+              "scheme": "https",
+              "host": "cookmate.trivyaa.in",
+              "pathPrefix": "/create"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -51,6 +83,12 @@
       "eas": {
         "projectId": "d56c288d-224b-4a9a-afba-9e8586e4b928"
       }
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/d56c288d-224b-4a9a-afba-9e8586e4b928"
     }
   }
 }
