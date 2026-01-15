@@ -15,12 +15,17 @@ CookMate is a modern, social mobile application for food enthusiasts to discover
   - Filter and search for specific dishes (coming soon).
 
 - **❤️ Social Interactions**
-  - **Like** recipes to show appreciation.
-  - **Comment** on recipes to share feedback or tips.
+  - **Like** recipes to show appreciation (with live counters).
+  - **Comment System**:
+    - Add user comments.
+    - **Edit** and **Delete** your own comments.
+    - View comments in an interactive Bottom Sheet.
   - **Share** recipes instantly via native sharing options.
 
-- **🔖 Bookmarks**
-  - Save your favorite recipes to your personal collection for quick access.
+- **🔖 Personalization**
+  - **Saved Recipes**: Dedicated screen to view and manage your bookmarked collection.
+  - **My Recipes**: View all the recipes you have contributed to the community.
+  - **Profile**: Customize your avatar and view your stats.
 
 - **🎨 Modern UI/UX**
   - Beautiful, responsive design.
@@ -33,8 +38,12 @@ CookMate is a modern, social mobile application for food enthusiasts to discover
 - **Routing**: [Expo Router](https://docs.expo.dev/router/introduction/)
 - **State Management**: [Zustand](https://github.com/pmndrs/zustand) with persistence
 - **Networking**: Fetch API with custom hooks/stores
-- **Icons**: Expo Vector Icons (Ionicons)
-- **Image Handling**: Expo Image
+- **UI Components**: 
+  - `@gorhom/bottom-sheet` for interactive modals
+  - Expo Vector Icons (Ionicons, Feather)
+- **Media**: 
+  - `expo-image` for high-performance image loading
+  - `expo-image-picker` for avatar uploads
 - **Storage**: Async Storage
 
 ## 🚀 Getting Started

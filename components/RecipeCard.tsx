@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useAppTheme } from '../constants/Colors';
 import { useInteractionStore } from '../store/interactionStore';
 import { Recipe } from '../store/recipeStore';
+import { timeAgo } from '../utils/timeAgo';
 
 interface RecipeCardProps {
     recipe: Recipe;
@@ -14,18 +15,22 @@ interface RecipeCardProps {
 export default function RecipeCard({ recipe }: RecipeCardProps) {
     const router = useRouter();
     const theme = useAppTheme();
-    const { toggleLike, toggleSave, savedRecipes } = useInteractionStore();
-    const [isLiked, setIsLiked] = useState(false);
+    const { toggleLike, toggleSave, savedRecipes, userLikes, likes, fetchRecipeLikes } = useInteractionStore();
+
+    useEffect(() => {
+        fetchRecipeLikes(recipe.id);
+    }, [recipe.id]);
 
     const isSaved = savedRecipes.some(r => r.id === recipe.id);
+    const isLiked = userLikes[recipe.id] ?? recipe.isLiked ?? false;
+    const likeCount = likes[recipe.id] ?? recipe.likesCount ?? 0;
 
     const handleLike = () => {
         toggleLike(recipe.id);
-        setIsLiked(!isLiked);
     };
 
     const handleSave = () => {
-        toggleSave(recipe.id);
+        toggleSave(recipe);
     };
 
     return (
@@ -40,7 +45,12 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
                     <Text style={[styles.title, { color: theme.text }]} numberOfLines={1}>{recipe.title}</Text>
                     <View style={styles.actions}>
                         <TouchableOpacity onPress={handleLike} style={styles.actionButton}>
-                            <Ionicons name={isLiked ? "heart" : "heart-outline"} size={24} color={isLiked ? theme.tint : theme.text} />
+                            <View style={styles.actionContent}>
+                                <Ionicons name={isLiked ? "heart" : "heart-outline"} size={24} color={isLiked ? theme.tint : theme.text} />
+                                {likeCount > 0 && (
+                                    <Text style={[styles.actionText, { color: theme.text }]}>{likeCount}</Text>
+                                )}
+                            </View>
                         </TouchableOpacity>
                         <TouchableOpacity onPress={handleSave} style={styles.actionButton}>
                             <Ionicons name={isSaved ? "bookmark" : "bookmark-outline"} size={24} color={isSaved ? theme.tint : theme.text} />
@@ -67,8 +77,7 @@ export default function RecipeCard({ recipe }: RecipeCardProps) {
                     <View style={styles.stats}>
                         {/* Example stats */}
                         <View style={styles.statItem}>
-                            <Ionicons name="time-outline" size={14} color={theme.icon} />
-                            <Text style={[styles.statText, { color: theme.subtext }]}>20m</Text>
+                            <Text style={[styles.statText, { color: theme.subtext }]}>{timeAgo(recipe.createdAt)}</Text>
                         </View>
                     </View>
                 </View>
@@ -151,5 +160,14 @@ const styles = StyleSheet.create({
     },
     actionButton: {
         padding: 4,
+    },
+    actionContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+    },
+    actionText: {
+        fontSize: 14,
+        fontWeight: '600',
     }
 });

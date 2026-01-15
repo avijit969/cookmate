@@ -6,6 +6,7 @@ import { Recipe } from './recipeStore';
 export interface Comment {
   id: string;
   content: string;
+  userId: string;
   user: {
     name: string;
     avatar: string;
@@ -25,8 +26,9 @@ interface InteractionState {
   fetchRecipeLikes: (recipeId: string) => Promise<void>;
   addComment: (recipeId: string, content: string) => Promise<void>;
   fetchRecipeComments: (recipeId: string) => Promise<void>;
+  updateComment: (commentId: string, recipeId: string, content: string) => Promise<void>;
   deleteComment: (commentId: string, recipeId: string) => Promise<void>;
-  toggleSave: (recipeId: string) => Promise<void>;
+  toggleSave: (recipe: Recipe) => Promise<void>;
   fetchSavedRecipes: () => Promise<void>;
 }
 
@@ -101,6 +103,7 @@ export const useInteractionStore = create<InteractionState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const token = useAuthStore.getState().token;
+      const user = useAuthStore.getState().user;
       if (!token) throw new Error("Unauthorized");
 
       const response = await fetch(`${API_BASE_URL}/interactions/comment`, {
@@ -113,7 +116,7 @@ export const useInteractionStore = create<InteractionState>((set, get) => ({
       });
 
       const data = await response.json();
-
+      console.log(JSON.stringify(data,null,2));
       if (!response.ok) {
         throw new Error(data.message || 'Failed to add comment');
       }
@@ -121,7 +124,10 @@ export const useInteractionStore = create<InteractionState>((set, get) => ({
       set((state) => ({
         comments: {
           ...state.comments,
-          [recipeId]: [data.comment, ...(state.comments[recipeId] || [])]
+          [recipeId]: [{...data.comment,
+            user:{
+            name:user?.name,
+            avatar:user?.avatar}}, ...(state.comments[recipeId]|| [])]
         },
         isLoading: false
       }));
@@ -151,6 +157,43 @@ export const useInteractionStore = create<InteractionState>((set, get) => ({
       }));
     } catch (error: any) {
       set({ isLoading: false, error: error.message });
+    }
+  },
+
+  updateComment: async (commentId: string, recipeId: string, content: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      const token = useAuthStore.getState().token;
+      if (!token) throw new Error("Unauthorized");
+
+     const response = await fetch(`${API_BASE_URL}/interactions/comment/${commentId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ content }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to update comment');
+      }
+
+      set((state) => ({
+        comments: {
+          ...state.comments,
+          [recipeId]: (state.comments[recipeId] || []).map(c => 
+            c.id === commentId ? { ...c, content: data.comment.content } : c
+          )
+        },
+        isLoading: false
+      }));
+
+    } catch (error: any) {
+      set({ isLoading: false, error: error.message });
+      throw error;
     }
   },
 
@@ -187,7 +230,7 @@ export const useInteractionStore = create<InteractionState>((set, get) => ({
     }
   },
 
-  toggleSave: async (recipeId: string) => {
+  toggleSave: async (recipe: Recipe) => {
     set({ isLoading: true, error: null });
     try {
       const token = useAuthStore.getState().token;
@@ -199,7 +242,7 @@ export const useInteractionStore = create<InteractionState>((set, get) => ({
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ recipeId }),
+        body: JSON.stringify({ recipeId: recipe.id }),
       });
 
       const data = await response.json();
@@ -212,8 +255,8 @@ export const useInteractionStore = create<InteractionState>((set, get) => ({
       set((state) => ({
           isLoading: false,
           savedRecipes: isSaved 
-            ? state.savedRecipes
-            : state.savedRecipes.filter(r => r.id !== recipeId)
+            ? [...state.savedRecipes, recipe]
+            : state.savedRecipes.filter(r => r.id !== recipe.id)
       }));
     } catch (error: any) {
       set({ isLoading: false, error: error.message });
@@ -237,7 +280,7 @@ export const useInteractionStore = create<InteractionState>((set, get) => ({
       if (!response.ok) {
         throw new Error(data.message || 'Failed to fetch saved recipes');
       }
-
+      console.log(JSON.stringify(data,null,2));
       set({ savedRecipes: data.recipes, isLoading: false });
     } catch (error: any) {
       set({ isLoading: false, error: error.message });

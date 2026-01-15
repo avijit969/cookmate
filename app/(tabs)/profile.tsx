@@ -2,7 +2,7 @@ import { Feather } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ActivityIndicator,
   Dimensions,
@@ -17,19 +17,28 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAppTheme } from '../../constants/Colors';
 import { useAlertStore } from '../../store/alertStore';
 import { useAuthStore } from '../../store/authStore';
+import { useInteractionStore } from '../../store/interactionStore';
+import { useRecipeStore } from '../../store/recipeStore';
 import { useThemeStore } from '../../store/themeStore';
 import { uploadImage } from '../../utils/imageUploader';
-
-const { width } = Dimensions.get('window');
 
 export default function ProfileScreen() {
   const { user, logout, updateProfile } = useAuthStore();
   const { mode, setMode } = useThemeStore();
+  const { savedRecipes, likes, fetchSavedRecipes } = useInteractionStore(); // Get saved/likes info
+  const { userRecipes, fetchUserRecipes } = useRecipeStore();
   const alert = useAlertStore();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const theme = useAppTheme();
   const [isUploading, setIsUploading] = useState(false);
+
+  useEffect(() => {
+    fetchSavedRecipes();
+    fetchUserRecipes();
+  }, []);
+
+  console.log(JSON.stringify(user, null, 2));
 
   const handleLogout = async () => {
     alert.show({
@@ -52,7 +61,7 @@ export default function ProfileScreen() {
   const pickImage = async () => {
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ["images"],
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.8,
@@ -122,24 +131,39 @@ export default function ProfileScreen() {
           <Text style={[styles.userEmail, { color: theme.subtext }]}>{user?.email || 'user@example.com'}</Text>
 
           <View style={styles.statsRow}>
-            <View style={styles.statItem}>
-              <Text style={[styles.statNumber, { color: theme.text }]}>0</Text>
+            <TouchableOpacity style={styles.statItem} onPress={() => router.push('/user-recipes')}>
+              <Text style={[styles.statNumber, { color: theme.text }]}>{userRecipes.length}</Text>
               <Text style={[styles.statLabel, { color: theme.subtext }]}>Recipes</Text>
-            </View>
+            </TouchableOpacity>
             <View style={[styles.statDivider, { backgroundColor: theme.border }]} />
             <View style={styles.statItem}>
               <Text style={[styles.statNumber, { color: theme.text }]}>0</Text>
               <Text style={[styles.statLabel, { color: theme.subtext }]}>Likes</Text>
             </View>
             <View style={[styles.statDivider, { backgroundColor: theme.border }]} />
-            <View style={styles.statItem}>
-              <Text style={[styles.statNumber, { color: theme.text }]}>0</Text>
+            <TouchableOpacity style={styles.statItem} onPress={() => router.push('/saved-recipes')}>
+              <Text style={[styles.statNumber, { color: theme.text }]}>{savedRecipes.length}</Text>
               <Text style={[styles.statLabel, { color: theme.subtext }]}>Saved</Text>
-            </View>
+            </TouchableOpacity>
           </View>
         </View>
 
         {/* Settings Items */}
+        <View style={styles.section}>
+          <Text style={[styles.sectionTitle, { color: theme.subtext }]}>My Content</Text>
+          <View style={[styles.card, { backgroundColor: theme.card }]}>
+            <TouchableOpacity onPress={() => router.push('/saved-recipes')} style={[styles.row, { borderBottomColor: theme.border, borderBottomWidth: 1 }]}>
+              <View style={styles.rowLeft}>
+                <View style={[styles.iconBox, { backgroundColor: theme.inputBg }]}>
+                  <Feather name="bookmark" size={20} color={theme.text} />
+                </View>
+                <Text style={[styles.rowLabel, { color: theme.text }]}>Saved Recipes</Text>
+              </View>
+              <Feather name="chevron-right" size={20} color={theme.subtext} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: theme.subtext }]}>Settings</Text>
 
@@ -159,7 +183,7 @@ export default function ProfileScreen() {
               />
             </View>
 
-            <TouchableOpacity style={[styles.row, { borderBottomColor: theme.border, borderBottomWidth: 1 }]}>
+            <TouchableOpacity onPress={() => router.push('/(tabs)/edit-profile')} style={[styles.row, { borderBottomColor: theme.border, borderBottomWidth: 1 }]}>
               <View style={styles.rowLeft}>
                 <View style={[styles.iconBox, { backgroundColor: theme.inputBg }]}>
                   <Feather name="user" size={20} color={theme.text} />

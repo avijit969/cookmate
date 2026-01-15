@@ -53,6 +53,12 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <Feather name="user" size={28} color={color} />,
         }}
       />
+      <Tabs.Screen
+        name="edit-profile"
+        options={{
+          href: null, // Hide from tab bar
+        }}
+      />
     </Tabs>
   );
 }

@@ -219,8 +219,17 @@ Retrieves details of a specific recipe. Redis caching is implemented for perform
         "id": "uuid",
         "title": "Pasta Carbonara",
         "description": "...",
+        "image": "url",
+        "ingredients": [ ... ],
         "instructions": "...",
-        "ingredients": [ ... ]
+        "likes": [
+          { "userId": "uuid" }
+        ],
+        "createdBy": {
+          "name": "John Doe",
+          "email": "john@example.com",
+          "avatar": "url"
+        }
       }
     }
     ```
@@ -246,12 +255,16 @@ Retrieves a paginated list of recipes. Redis caching is implemented for performa
         {
           "id": "uuid",
           "title": "Pasta Carbonara",
+          "image": "url",
+          "description": "...",
+          "createdAt":"timestamp",
           "createdBy": {
              "name": "John Doe",
-             "email": "john@example.com",
              "avatar": "url"
           },
-          "ingredients": [ ... ]
+          "likes": [
+             { "userId": "uuid" }
+          ]
         }
       ]
     }
@@ -269,7 +282,16 @@ Searches for recipes by name (case-insensitive).
   - `200 OK`:
     ```json
     {
-      "recipe": { ... }
+      "recipe": {
+         "title": "Pasta Carbonara",
+         "image": "url",
+         "description": "...",
+         "createdBy": {
+           "name": "John Doe",
+           "email": "john@example.com",
+           "avatar": "url"
+         }
+      }
     }
     ```
   - `404 Not Found`: Recipe not found.
@@ -284,7 +306,20 @@ Retrieves all recipes created by the authenticated user.
   - `200 OK`:
     ```json
     {
-      "recipes": [ ... ]
+      "recipes": [
+        {
+          "id": "uuid",
+          "title": "Pasta Carbonara",
+          "image": "url",
+          "description": "...",
+          "likesCount": 5,
+          "createdBy": {
+            "name": "John Doe",
+            "email": "john@example.com",
+            "avatar": "url"
+          }
+        }
+      ]
     }
     ```
   - `404 Not Found`: No recipes found.
@@ -488,9 +523,12 @@ Adds a new comment to a recipe.
   - `500 Internal Server Error`
 
 ### 4. Get Recipe Comments
-Retrieves all comments for a specific recipe.
+Retrieves all comments for a specific recipe with pagination.
 
 - **URL**: `GET /comment/:recipeId`
+- **Query Parameters**:
+  - `page` (optional): Page number (default: 1).
+  - `limit` (optional): Number of items per page (default: 10).
 - **Response**:
   - `200 OK`:
     ```json
@@ -499,18 +537,47 @@ Retrieves all comments for a specific recipe.
         {
           "id": "uuid",
           "content": "Great recipe!",
+          "createdAt": "timestamp",
           "user": {
             "name": "Jane Doe",
             "avatar": "url"
-          },
-          "createdAt": "timestamp"
+          }
         }
-      ]
+      ],
+      "total": 15,
+      "hasNextPage": true,
+      "hasPrevPage": false
     }
     ```
   - `500 Internal Server Error`
 
-### 5. Delete Comment
+### 5. Update Comment
+Update a commnet . by the commnetId 
+- **URL**: `PUT /comment/:commentId`
+- **Authentication**: Required
+- **Body** (JSON):
+  ```json
+  {
+    "content": "Updated comment"
+  }
+  ```
+- **Response**:
+  - `200 OK`:
+    ```json
+    {
+      "message": "Comment updated successfully",
+      "comment": {
+        "id": "uuid",
+        "content": "Updated comment",
+        "createdAt": "timestamp"
+      }
+    }
+    ```
+  - `403 Forbidden`: Unauthorized to update.
+  - `404 Not Found`: Comment not found.
+  - `500 Internal Server Error`
+
+### 6. Delete Comment
 Deletes a comment. User must be the owner.
 
 - **URL**: `DELETE /comment/:commentId`
